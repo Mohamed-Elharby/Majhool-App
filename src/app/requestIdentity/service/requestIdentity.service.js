@@ -28,8 +28,8 @@ export async function getMyIdentityRequests(reciverReq) {
     return requests;
 }
 
-export async function getSentIdentityRequests(senderReq) {
-    const requests = await reqRepo.getRerequestIdentity({senderReq:senderReq});    
+export async function getSentIdentityRequests(senderReq) {    
+    const requests = await reqRepo.getSentRequestsIdentity(senderReq);        
     if (requests.length == 0)
         throw errorReq.notSendReq
     return requests;

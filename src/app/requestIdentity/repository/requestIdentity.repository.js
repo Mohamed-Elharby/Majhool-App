@@ -13,8 +13,8 @@ export async function getRerequestIdentity(data) {
   return RequestModel.find(data);
 }
 
-export async function getSentRequestsIdentity(messageId) {
-  return RequestModel.findOne({messageId:messageId})
+export async function getSentRequestsIdentity(senderReq) {
+  return RequestModel.findOne({senderReq:senderReq},{reciverReq:0})
 }
 
 export async function getRerequestIdentityByID(id) {

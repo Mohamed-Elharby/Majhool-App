@@ -36,7 +36,7 @@ export async function userConferm(req, res, next) {
 export async function enableTowStepVerification(req, res, next) {
   try {
     const data = validateDTO(confermEmailDTO, req.body);
-    const { email, code } = data;
+    const { email , code } = data;
     await authService.enableTowStepVerification(email, code);
     res.json({
       message: "Enable Tow Step Verification Susscusfyle",
@@ -46,6 +46,7 @@ export async function enableTowStepVerification(req, res, next) {
     next(error);
   }
 }
+
 export async function verifyTowStepVerification(req, res, next) {
   try {
     const { email, code } = req.body;
@@ -82,8 +83,7 @@ export async function userLogin(req, res, next) {
 
 export async function newOtp(req, res, next) {
   try {
-    const data = validateDTO(resendOtpDTO, req.body);
-    const { email } = data;
+    const  {email}  =  req.user;
     await authService.resendOtp(email);
     res.json({
       message: "A new OTP has been sent to your email.",
@@ -109,7 +109,7 @@ export async function resetPassword(req, res, next) {
 }
 
 export async function loginWithGoogel(req, res, next) {
-  try {
+  try {    
     const token = await authService.loginWithGoogle(req.body.idToken);
     setCookies(res,token)
     res.json({

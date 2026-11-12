@@ -8,12 +8,12 @@ import { authGuard } from "../../../lib/auth/authGuard.js";
 export const userRouter = Router();
 
 userRouter.get("/get-all-user", 
-    // withCache(), 
+    withCache(), 
     userController.getAllUsers
 );
 userRouter.get("/get-profile", 
     authGuard, 
-    userController.getProfile
+    userController.getProfile,
 );
 userRouter.post(
     "/upload-profile-Picture",
@@ -26,6 +26,7 @@ userRouter.post(
     "/upload-cover-Picture",
     authGuard,
     uploadeArrayFile("cover-Picture", 3),
+    validationFile(),
     userController.uploadCoverImges,
 );
 userRouter.delete(

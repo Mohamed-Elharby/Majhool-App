@@ -15,7 +15,7 @@ export class MailjetProvider {
 }
 
 async sendMail(email , subject , html){
-        this.client.post("send", { version: "v3.1" }).request({
+        return this.client.post("send", { version: "v3.1" }).request({
         Messages: [
         {
         From: {

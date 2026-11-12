@@ -5,7 +5,8 @@ export async function allUser(){
 }
 
 export async function checkUserExsitsById(id){
-    return await  User.findOne({_id:id, isDeleted:false },{password:0},{});       
+    return await  User.findOne({_id:id, isDeleted:false },
+        {password:0,updatedAt:0,deleteAt:0,isDeleted:0,},{});       
 }
 
 export async function updateProfilePicture(id , profilePicture ) {

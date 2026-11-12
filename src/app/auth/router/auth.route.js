@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as authController from "../controller/auth.controller.js";
 import { idempotency } from "../../../pkg/idempotency/idempotency.js";
+import { loginLimiter, otpLimiter } from "../../../lib/rateLimiter/rateLimiter.js";
+import { authGuard } from "../../../lib/auth/authGuard.js";
 export const authRouter = Router();
 
 authRouter.post("/register",
@@ -10,9 +12,12 @@ authRouter.patch("/verify-account",
     authController.userConferm
 );
 authRouter.post("/login", 
+    loginLimiter,
     authController.userLogin
 );
 authRouter.post("/resend-otp",
+    authGuard,
+    otpLimiter,
     idempotency(300), 
     authController.newOtp
 );
@@ -32,3 +37,8 @@ authRouter.post(
     "/verify-tow-step-verification",
     authController.verifyTowStepVerification
 );
+
+
+authRouter.get("/profile", authGuard, (req, res) => {
+  res.json({ user: req.user });
+});

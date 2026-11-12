@@ -1,7 +1,7 @@
 import { verifyGoogleToken } from "../../../lib/authWithGoogle/authWithGoogle.js";
 // import { sendEmail } from "../../../lib/email/nodemailer.js";
 import * as authRepo from "../repository/auth.repository.js";
-import * as otpRepo from "../repository/otp.repository.js";
+// import * as otpRepo from "../repository/otp.repository.js";
 import * as error from "../error/authError.js";
 import * as errorUser from "../../user/error/userError.js";
 import { createOtp } from "../../../lib/utils/generateOtp.js";
@@ -64,11 +64,23 @@ export async function verifyTowStepVerification(email, code) {
   return token;
 }
 
+// Decrease login attempts after a failed login.
+async function decreaseLoginTries(email) {
+  let cachedTries = await cacheProvider.get(`login-tries:${email}`)
+  const cacheTTL = await cacheProvider.ttl(`login-tries:${email}`)  
+  cachedTries = cachedTries ?? 5
+  const ttl = cacheTTL == -2 ? 300 : cacheTTL
+  await cacheProvider.set(`login-tries:${email}`, cachedTries - 1 , ttl)
+}
+
 export async function login(email, password) {
-  let cachedTries = await cacheProvider.get(`login-tries${email}`)
+  const cachedTries = await cacheProvider.get(`login-tries:${email}`);
   if(cachedTries === "0") throw new  AppEroor("Login tries exceeded. Please try again later.",429)
   const user = await authRepo.checkUserExsistByEmail({ email });
-  if (!user) throw errorUser.userNotExsists;
+  if (!user){ 
+    await decreaseLoginTries(email)
+    throw errorUser.invalidCredentials;
+  }
   if (user.isDeleted == true) {
     user.isDeleted = false
     user.deleteAt = null
@@ -76,7 +88,11 @@ export async function login(email, password) {
   }
   if (user.isConfirmed == false) throw errorUser.userNotVeryfied;
   const match = await comparePassword(password, user.password);
-  if (!match) throw error.invaledPassword;
+  if (!match) {
+    await decreaseLoginTries(email)
+    throw errorUser.invalidCredentials;
+  }
+  await cacheProvider.del(`login-tries:${email}`);
   if (user.towStepVerification == true) {
   const otp = await createOtp(user.email);
     await mailjetProvider.sendMail(
@@ -88,19 +104,15 @@ export async function login(email, password) {
   );
   return;
   }
-  const cacheTTL = await cacheProvider.ttl(`login-tries${email}`)
-  cachedTries = cachedTries ?? 5
-  const ttl = cacheTTL == -2 ? 300 : cacheTTL
-  await cacheProvider.set(`login-tries${email}`, cachedTries - 1 , ttl)
   const token = generateToken({
     id: user._id,email: user.email,name: user.name,
   });  
   return token;
 }
 
-export async function resendOtp(email) {
+export async function resendOtp(email , req ) {
   const user = await authRepo.checkUserExsistByEmail({ email });
-  if (!user) throw errorUser.userNotExsists;
+  if (!user) throw errorUser.userNotExsists;  
 //Delete All Old otp
   // await otpRepo.deleteOtpsByEmail(email);
   await cacheProvider.del(`otp:${email}`)
@@ -147,16 +159,15 @@ export async function loginWithGoogle(idToken) {
   const user = await authRepo.checkUserExsistByEmail({ email: payload.email });
   if (user) {
     return generateToken({
-      id: payload._id,
-      name: payload.name,
-      email: payload.email,
+      id: user._id,
+      name: user.name,
+      email: user.email,
     });
   }
   const createdUser = await authRepo.saveUserInDB({
     name: payload.name,
     email: payload.email,
-    email: payload.email,
-    picture: payload.picture,
+    profilePicture: payload.picture,
     provider: "google",
     isConfirmed: true,
   });
